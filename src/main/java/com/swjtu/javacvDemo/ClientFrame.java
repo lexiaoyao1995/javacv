@@ -15,16 +15,22 @@ import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameGrabber;
-import org.bytedeco.javacv.FrameGrabber.Exception;
 
-public class ClientFrame extends CanvasFrame{
-	
+public class ClientFrame extends CanvasFrame {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 10L;
+
 	private OpenCVFrameGrabber grabber = null;
-	
-	private Socket socket=null;
-	
-	Frame currentFrame = null;
-	
+
+	private Socket socket = null;
+
+	private static Frame currentFrame = null;
+
+	private SendContiousThread sendContiousThread = null;
+
 	public ClientFrame() throws Exception, InterruptedException, org.bytedeco.javacv.FrameGrabber.Exception {
 		super("client");
 		// TODO Auto-generated constructor stub
@@ -35,8 +41,8 @@ public class ClientFrame extends CanvasFrame{
 		setJMenuBar(initMenuBar());
 		grabber = new OpenCVFrameGrabber(0);
 		grabber.start();
-		
-		while(true) {
+
+		while (true) {
 			if (!canvas.isDisplayable()) {// 窗口是否关闭
 				grabber.stop();// 停止抓取
 				System.exit(2);// 退出
@@ -47,66 +53,123 @@ public class ClientFrame extends CanvasFrame{
 
 			Thread.sleep(50);// 50毫秒刷新一次图像
 		}
-		
+
 	}
-	
+
 	private JMenuBar initMenuBar() {
 		JMenuBar jMenuBar = new JMenuBar();
-		JMenu jMenu=new JMenu("file");
-		JMenuItem jMenuItem = new JMenuItem("send");
+		JMenu jMenu = new JMenu("file");
+		JMenuItem jMenuItem = new JMenuItem("send single");
 		jMenuItem.addMouseListener(new MouseListener() {
-			
+
 			public void mouseReleased(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				
+
 			}
-			
+
 			public void mousePressed(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				Mat mat = Utils.frameTomat(currentFrame);
-				byte[] matTobytes = Utils.matTobytes(mat);
-				try {
-					sendToServer(matTobytes);
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
+				/**
+				 * 
+				 * Mat mat = Utils.frameTomat(currentFrame); byte[] matTobytes =
+				 * Utils.matTobytes(mat); try { sendToServer(matTobytes); } catch
+				 * (UnknownHostException e) { e.printStackTrace(); } catch (IOException e) {
+				 * e.printStackTrace(); }
+				 */
+				sendSingle();
 			}
-			
+
 			public void mouseExited(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				
+
 			}
-			
+
 			public void mouseEntered(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				
+
 			}
-			
+
 			public void mouseClicked(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				
+
 			}
 		});
 		jMenu.add(jMenuItem);
+		JMenuItem jMenuItem2 = new JMenuItem("send contious");
+		jMenuItem2.addMouseListener(new MouseListener() {
+
+			public void mouseReleased(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			public void mousePressed(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+				// isSendContinus = !isSendContinus;
+				// System.out.println("iscontious is " + isSendContinus);
+				// while (isSendContinus) {
+				// sendSingle();
+				// try {
+				// Thread.sleep(1000);
+				// } catch (InterruptedException e1) {
+				// // TODO Auto-generated catch block
+				// e1.printStackTrace();
+				// }
+				// }
+
+				if (sendContiousThread == null) {
+					sendContiousThread = new SendContiousThread();
+					sendContiousThread.start();
+				}
+
+				sendContiousThread.isWork = !sendContiousThread.isWork;
+			}
+
+			public void mouseExited(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			public void mouseEntered(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			public void mouseClicked(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+		});
+		jMenu.add(jMenuItem2);
 		jMenuBar.add(jMenu);
 		return jMenuBar;
 	}
-	
+
 	private void sendToServer(byte[] data) throws UnknownHostException, IOException {
 		socket = new Socket("localhost", 8889);
 		OutputStream outputStream = socket.getOutputStream();
-		
 		outputStream.write(data, 0, data.length);
-		
 		socket.shutdownOutput();
 		outputStream.close();
-		
-		
 	}
-	
-	
+
+	private void sendSingle() {
+		Mat mat = Utils.frameTomat(currentFrame);
+		byte[] matTobytes = Utils.matTobytes(mat);
+		try {
+			sendToServer(matTobytes);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static byte[] getCurrentData() {
+		Mat mat = Utils.frameTomat(currentFrame);
+		byte[] matTobytes = Utils.matTobytes(mat);
+		return matTobytes;
+	}
 
 }
